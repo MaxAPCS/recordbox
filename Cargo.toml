@@ -1,0 +1,12 @@
+[package]
+name = "recordbox"
+version = "0.1.0"
+edition = "2024"
+description = "A fluent music library manager"
+
+[dependencies]
+audiotags = "0.5.0"
+axum = { version = "0.8.8", default-features = false, features = ["http2", "tokio", "json"] }
+config = { version = "0.15.19", features = ["yaml"] }
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.49.0", default-features = false, features = ["macros", "rt-multi-thread"] }
