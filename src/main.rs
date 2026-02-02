@@ -1,6 +1,7 @@
 mod config;
 mod server;
 mod sync;
+mod tagser;
 
 #[tokio::main]
 async fn main() {
