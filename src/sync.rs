@@ -1,5 +1,6 @@
+use crate::util;
 use axum::http::Uri;
-use mp4ameta::{ReadConfig, Tag, WriteConfig};
+use mp4ameta::{ReadConfig, WriteConfig};
 use std::{fs, future, path::Path, process::Command, task::Poll};
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -38,7 +39,13 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), String> 
             .scheme("https")
             .path_and_query(format!("/watch?v={}", track.id))
             .build()
-            .unwrap(),
+            .map_err(|_| "Invalid URL")?,
+        "soundcloud" => Uri::builder()
+            .authority("soundcloud.com")
+            .scheme("https")
+            .path_and_query(format!("/{}", track.id))
+            .build()
+            .map_err(|_| "Invalid URL")?,
         _ => return Err("Invalid Provider".to_string()),
     };
     let cmd = Command::new("yt-dlp")
@@ -48,7 +55,11 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), String> 
             "--ignore-config",
             "--no-overwrites",
             "-o",
-            track.to_string().as_str(),
+            track
+                .to_string()
+                .replace(std::path::MAIN_SEPARATOR_STR, "")
+                .replace(".", "")
+                .as_str(),
             "-f",
             "m4a/bestaudio/best",
             "-x",
@@ -104,8 +115,8 @@ pub fn track_delete(track: Track, dst_dir: &Path) -> Result<(), String> {
     }
 }
 
-pub fn track_info(track: Track, dst_dir: &Path) -> Result<Tag, String> {
-    Tag::read_with_path(
+pub fn track_info(track: &Track, dst_dir: &Path) -> Result<mp4ameta::Tag, String> {
+    match mp4ameta::Tag::read_with_path(
         dst_dir.join(track.to_string()).with_added_extension("m4a"),
         &ReadConfig {
             read_image_data: false,
@@ -114,18 +125,22 @@ pub fn track_info(track: Track, dst_dir: &Path) -> Result<Tag, String> {
             read_audio_info: true,
             ..Default::default()
         },
-    )
-    .map_err(|e| match e.kind {
-        mp4ameta::ErrorKind::Io(err) => match err.kind() {
-            std::io::ErrorKind::NotFound => "Not Found".to_string(),
-            std::io::ErrorKind::PermissionDenied => "Forbidden".to_string(),
-            _ => err.to_string(),
-        },
-        _ => "Corrupted File".to_string(),
-    })
+    ) {
+        Ok(t) => Ok(t),
+        Err(e) => Err(match e.kind {
+            mp4ameta::ErrorKind::Io(err) => match err.kind() {
+                std::io::ErrorKind::NotFound => "Not Found".to_string(),
+                std::io::ErrorKind::PermissionDenied => "Forbidden".to_string(),
+                _ => err.to_string(),
+            },
+            _ => "Corrupted File".to_string(),
+        }),
+    }
 }
 
-pub fn track_edit(track: Track, dst_dir: &Path, tag: Tag) -> Result<(), String> {
+pub fn track_edit(track: Track, dst_dir: &Path, meta: util::Metadata) -> Result<(), String> {
+    let mut tag = track_info(&track, dst_dir)?;
+    meta.apply(&mut tag);
     tag.write_with_path(
         dst_dir.join(track.to_string()).with_added_extension("m4a"),
         &WriteConfig {
