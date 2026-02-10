@@ -1,33 +1,83 @@
 use crate::{autotag::MetadataSource, util};
 
 #[derive(Default)]
-pub(crate) struct Deezer {
+pub(super) struct Deezer {
     client: reqwest::Client,
 }
 
+impl Deezer {
+    fn rmparens(input: &str) -> String {
+        let mut result = String::new();
+        let mut segment = String::new();
+        let mut depth = 0;
+
+        for ch in input.chars() {
+            match ch {
+                '(' | '[' => {
+                    if depth == 0 {
+                        result.push_str(&segment);
+                        segment.clear();
+                    }
+                    depth += 1;
+                }
+                ')' | ']' => depth -= 1,
+                _ => {
+                    if depth == 0 {
+                        segment.push(ch);
+                    }
+                }
+            }
+        }
+        result.push_str(&segment);
+
+        result.trim().to_string()
+    }
+}
+
 impl MetadataSource for Deezer {
-    async fn get_track(&self, meta: util::Metadata) -> Result<Vec<util::Metadata>, String> {
-        let mut query = Vec::with_capacity(3);
-        if let Some(title) = &meta.title {
-            query.push(("track", title));
+    async fn get_track(
+        &self,
+        meta: &util::Metadata,
+        fuzzy: bool,
+    ) -> Result<Vec<util::Metadata>, String> {
+        let query = if fuzzy {
+            if let Some(isrc) = &meta.isrc {
+                format!("isrc: \"{}\"", isrc)
+            } else if let Some(title) = &meta.title {
+                let title = Deezer::rmparens(title);
+                if let Some(artist) = meta.artists.first() {
+                    format!("{} - {}", artist, title)
+                } else {
+                    title
+                }
+            } else {
+                "".to_string()
+            }
+        } else {
+            let mut query = Vec::with_capacity(3);
+            if let Some(title) = &meta.title {
+                query.push(("track", title));
+            }
+            if let Some(artist) = meta.artists.first() {
+                query.push(("artist", artist));
+            }
+            if let Some(isrc) = &meta.isrc {
+                query.push(("isrc", isrc));
+            }
+            query
+                .into_iter()
+                .map(|(k, v)| format!("{}:\"{}\"", k, v))
+                .collect::<Vec<String>>()
+                .join(" ")
+        };
+        if query.is_empty() {
+            return Err("Required Fields: title or isrc".to_string());
         }
-        if let Some(artist) = meta.artists.first() {
-            query.push(("artist", artist));
-        }
+
         let resp = self
             .client
             .get("https://api.deezer.com/search/track")
-            .query(&[
-                (
-                    "q",
-                    query
-                        .into_iter()
-                        .map(|(k, v)| format!("{}:\"{}\"", k, v))
-                        .collect::<Vec<String>>()
-                        .join(" "),
-                ),
-                ("limit", "1".to_string()),
-            ])
+            .query(&[("q", query)])
             .send()
             .await
             .map_err(|e| e.to_string())?
@@ -41,21 +91,24 @@ impl MetadataSource for Deezer {
                 title: Some(t.title_short),
                 artists: vec![t.artist.name],
                 album: Some(t.album.title),
+                isrc: Some(t.isrc),
                 ..Default::default()
             })
             .collect())
     }
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(serde::Deserialize)]
+#[allow(unused)]
 struct DeezerResp {
-    data: Vec<Track>,
+    data: Vec<DeezerTrack>,
     total: i64,
     next: Option<String>,
 }
 
-#[derive(Debug, serde::Deserialize)]
-struct Track {
+#[derive(serde::Deserialize)]
+#[allow(unused)]
+struct DeezerTrack {
     id: i64,
     readable: bool,
     title: String,
@@ -82,7 +135,8 @@ struct Track {
     track_type: String,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(serde::Deserialize)]
+#[allow(unused)]
 struct Artist {
     id: i64,
     name: String,
@@ -101,7 +155,8 @@ struct Artist {
     artist_type: String,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(serde::Deserialize)]
+#[allow(unused)]
 struct Album {
     id: i64,
     title: String,

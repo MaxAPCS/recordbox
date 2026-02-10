@@ -1,19 +1,26 @@
 use crate::{autotag::MetadataSource, util};
 
 #[derive(Default)]
-pub(crate) struct LRCLib {
+pub(super) struct LRCLib {
     client: reqwest::Client,
 }
 
 impl MetadataSource for LRCLib {
-    async fn get_track(&self, meta: crate::util::Metadata) -> Result<Vec<util::Metadata>, String> {
+    async fn get_track(
+        &self,
+        meta: &util::Metadata,
+        _fuzzy: bool, // not supported
+    ) -> Result<Vec<util::Metadata>, String> {
         let resp = self
             .client
             .get("https://lrclib.net/api/get")
             .query(&[
                 (
                     "track_name",
-                    meta.title.ok_or("Required Field: title")?.replace(" ", "+"),
+                    meta.title
+                        .clone()
+                        .ok_or("Required Field: title")?
+                        .replace(" ", "+"),
                 ),
                 (
                     "artist_name",
@@ -39,7 +46,8 @@ impl MetadataSource for LRCLib {
     }
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(serde::Deserialize)]
+#[allow(unused)]
 #[serde(rename_all = "camelCase")]
 struct LRCResp {
     id: isize,

@@ -1,9 +1,11 @@
 use crate::{autotag::MetadataSource, sync, util};
 use axum::{Router, extract, routing};
 use std::sync::Arc;
+use tower_http::services;
 
 pub async fn serve(configuration: util::Configuration) {
     let router = Router::new()
+        .fallback_service(services::ServeDir::new("frontend"))
         .route("/health", routing::get(async || "Working!"))
         .route("/trackadd", routing::post(trackadd))
         .route("/trackls", routing::get(trackls))
@@ -71,5 +73,9 @@ async fn trackautotag(
     extract::Path(track): extract::Path<sync::Track>,
 ) -> axum::response::Result<extract::Json<Vec<util::Metadata>>> {
     let meta = sync::track_info(&track, cfg.get_directory("downloads")?.as_path())?.into();
-    Ok(extract::Json(cfg.metadatasources.get_track(meta).await?))
+    Ok(extract::Json(
+        cfg.metadatasources
+            .get_track(&meta, cfg.get_bool("fuzzy").unwrap_or(false))
+            .await?,
+    ))
 }

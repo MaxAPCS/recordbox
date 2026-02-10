@@ -1,7 +1,7 @@
 use crate::util;
 use axum::http::Uri;
 use mp4ameta::{ReadConfig, WriteConfig};
-use std::{fs, future, path::Path, process::Command, task::Poll};
+use std::{fs, path::Path};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct Track {
@@ -40,15 +40,9 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), String> 
             .path_and_query(format!("/watch?v={}", track.id))
             .build()
             .map_err(|_| "Invalid URL")?,
-        "soundcloud" => Uri::builder()
-            .authority("soundcloud.com")
-            .scheme("https")
-            .path_and_query(format!("/{}", track.id))
-            .build()
-            .map_err(|_| "Invalid URL")?,
         _ => return Err("Invalid Provider".to_string()),
     };
-    let cmd = Command::new("yt-dlp")
+    let cmd = tokio::process::Command::new("yt-dlp")
         .current_dir(dst_dir)
         .args([
             uri.to_string().as_str(),
@@ -69,30 +63,23 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), String> 
             "m4a",
             "--embed-metadata",
             "--parse-metadata",
-            "release_date:%(meta_date)s",
+            "%(release_date,upload_date|)s:%(meta_date)s",
             "--parse-metadata",
-            "%(artists)+l:%(meta_artist)s",
+            "%(artists|)+l:%(meta_artist)s",
             "--embed-thumbnail",
             "--ppa",
             "ffmpeg: -c:v mjpeg -vf crop=\"'if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'\"",
         ])
         .env_clear()
+        .stdout(std::process::Stdio::null())
         .spawn();
     match cmd {
         Err(e) => Err(e.to_string()),
-        Ok(mut child) => {
-            let res = future::poll_fn(|_| match child.try_wait() {
-                Ok(None) => Poll::Pending,
-                Err(e) => Poll::Ready(Err(e)),
-                Ok(Some(a)) => Poll::Ready(Ok(a)),
-            })
-            .await;
-            match res {
-                Err(e) => Err(e.to_string()),
-                Ok(e) if !e.success() => Err(e.to_string()),
-                Ok(_) => Ok(()),
-            }
-        }
+        Ok(mut child) => match child.wait().await {
+            Err(e) => Err(e.to_string()),
+            Ok(e) if !e.success() => Err(e.to_string()),
+            Ok(_) => Ok(()),
+        },
     }
 }
 

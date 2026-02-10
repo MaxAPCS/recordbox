@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Library Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 Music Library</h1>
+            <div class="header-controls">
+                <button id="addTrackBtn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Track
+                </button>
+                <div class="theme-toggle">
+                    <input type="checkbox" id="themeSwitch" class="theme-switch-checkbox">
+                    <label for="themeSwitch" class="theme-switch-label">
+                        <i class="fas fa-sun"></i>
+                        <i class="fas fa-moon"></i>
+                        <span class="theme-switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading tracks...</p>
+            </div>
+            
+            <div id="emptyState" class="empty-state hidden">
+                <i class="fas fa-music"></i>
+                <h2>No tracks yet</h2>
+                <p>Add your first track to get started</p>
+                <button id="addFirstTrackBtn" class="btn btn-primary">Add Track</button>
+            </div>
+
+            <div id="trackList" class="track-list"></div>
+        </main>
+    </div>
+
+    <!-- Add Track Modal -->
+    <div id="addTrackModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Track</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addTrackForm">
+                    <div class="form-group">
+                        <label for="provider">Provider</label>
+                        <select id="provider" name="provider" required>
+                            <option value="youtube">YouTube</option>
+                            <option value="spotify">Spotify (future)</option>
+                            <option value="soundcloud">SoundCloud (future)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="trackId">Track ID/URL</label>
+                        <input type="text" id="trackId" name="id" 
+                               placeholder="YouTube video ID or URL" required>
+                        <small class="form-help">Enter YouTube video ID (e.g., dQw4w9WgXcQ) or full URL</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="bulkTracks">Or add multiple tracks (JSON):</label>
+                        <textarea id="bulkTracks" name="bulkTracks" 
+                                  placeholder='[{"provider": "youtube", "id": "videoId1"}, ...]'
+                                  rows="4"></textarea>
+                        <small class="form-help">Paste JSON array of Track objects</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Track(s)</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Track Details Modal -->
+    <div id="trackDetailsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Track Details</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="trackDetailsLoading" class="loading">
+                    <div class="spinner"></div>
+                </div>
+                <div id="trackDetailsContent" class="hidden">
+                    <div class="track-details-grid">
+                        <div class="detail-group">
+                            <label>Title:</label>
+                            <span id="detailTitle" class="detail-value">Loading...</span>
+                        </div>
+                        <div class="detail-group">
+                            <label>Artists:</label>
+                            <span id="detailArtists" class="detail-value">Loading...</span>
+                        </div>
+                        <div class="detail-group">
+                            <label>Album:</label>
+                            <span id="detailAlbum" class="detail-value">Loading...</span>
+                        </div>
+                        <div class="detail-group">
+                            <label>Release Date:</label>
+                            <span id="detailDate" class="detail-value">Loading...</span>
+                        </div>
+                        <div class="detail-group">
+                            <label>Genres:</label>
+                            <span id="detailGenres" class="detail-value">Loading...</span>
+                        </div>
+                        <div class="detail-group">
+                            <label>ISRC:</label>
+                            <span id="detailIsrc" class="detail-value">Loading...</span>
+                        </div>
+                        <div class="detail-group full-width">
+                            <label>Lyrics:</label>
+                            <div id="detailLyrics" class="lyrics-container">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="editTrackBtn" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Track Modal -->
+    <div id="editTrackModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Track</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editTrackForm">
+                    <input type="hidden" id="editProvider" name="provider">
+                    <input type="hidden" id="editId" name="id">
+                    
+                    <div class="form-group">
+                        <label for="editTitle">Title</label>
+                        <input type="text" id="editTitle" name="title">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editArtists">Artists (one per line)</label>
+                        <textarea id="editArtists" name="artists" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editAlbum">Album</label>
+                        <input type="text" id="editAlbum" name="album">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editDate">Release Date</label>
+                        <input type="text" id="editDate" name="date" placeholder="YYYY-MM-DD">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editGenres">Genres (comma separated)</label>
+                        <input type="text" id="editGenres" name="genres">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editLyrics">Lyrics</label>
+                        <textarea id="editLyrics" name="lyrics" rows="6"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editIsrc">ISRC</label>
+                        <input type="text" id="editIsrc" name="isrc">
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-tag Modal -->
+    <div id="autotagModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Auto-tag Suggestions</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="autotagLoading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading suggestions...</p>
+                </div>
+                <div id="autotagContent" class="hidden">
+                    <p class="autotag-instruction">Select a candidate to apply:</p>
+                    <div id="autotagCandidates" class="candidates-list"></div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal hidden">
+        <div class="modal-content confirm-modal">
+            <div class="modal-body">
+                <p id="confirmMessage">Are you sure?</p>
+                <div class="modal-actions">
+                    <button id="confirmCancel" class="btn btn-secondary">Cancel</button>
+                    <button id="confirmOk" class="btn btn-danger">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
