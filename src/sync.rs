@@ -95,22 +95,27 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), (StatusC
 pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, (StatusCode, String)> {
     Ok(fs::read_dir(dst_dir)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .map(|f| {
+        .filter_map(|f| {
             let Ok(file) = f else {
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Track Read Error".to_string(),
-                ));
+                return None;
             };
             let file = file.path();
-            let path = file.file_prefix().map(|fp| fp.to_str()).flatten().ok_or((
+            if file.starts_with(".") {
+                return None;
+            }
+            let Some(path) = file.file_prefix().map(|fp| fp.to_str()).flatten() else {
+                return Some(Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Track Path Invalid".to_string(),
+                )));
+            };
+            Some(Track::parse(path).ok_or((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Track Path Invalid".to_string(),
-            ))?;
-            Track::parse(path).ok_or((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Track Parse Failed. Format: {provider}_{id}.m4a".to_string(),
-            ))
+                format!(
+                    "Track Parse Failed. Got: {}, Correct Format: {{provider}}_{{id}}.m4a",
+                    path
+                ),
+            )))
         })
         .collect::<Result<Vec<_>, _>>()?)
 }
