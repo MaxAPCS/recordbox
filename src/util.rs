@@ -9,8 +9,13 @@ pub(crate) struct Configuration {
 
 impl Configuration {
     pub(crate) fn open() -> Result<Self, ConfigError> {
-        let cfg = Config::builder()
-            .add_source(config::File::with_name("config"))
+        let mut cfg = Config::builder();
+        if let Ok(f) = fs::canonicalize("config.yaml")
+            && f.is_file()
+        {
+            cfg = cfg.add_source(config::File::with_name("config"));
+        }
+        let cfg = cfg
             .add_source(config::Environment::with_prefix("RECORDBOX"))
             .build()?;
         Ok(Self {
