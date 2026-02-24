@@ -100,7 +100,7 @@ pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, (StatusCode, String)> {
                 return None;
             };
             let file = file.path();
-            if file.starts_with(".") {
+            if !file.is_file() {
                 return None;
             }
             let Some(path) = file.file_prefix().map(|fp| fp.to_str()).flatten() else {
@@ -109,6 +109,9 @@ pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, (StatusCode, String)> {
                     "Track Path Invalid".to_string(),
                 )));
             };
+            if path.starts_with(".") {
+                return None;
+            }
             Some(Track::parse(path).ok_or((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!(
