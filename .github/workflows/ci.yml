@@ -11,18 +11,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - name: Install musl dependencies
-        run: sudo apt-get update && sudo apt-get install -y musl musl-dev
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: rust-build/rust-build.action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          targets: x86_64-unknown-linux-musl
-      - name: Build Artifact
-        run: cargo build --verbose --release --locked --target x86_64-unknown-linux-musl
-      - name: Create Release
-        uses: softprops/action-gh-release@v2.4.2
-        with:
-          prerelease: true
-          files: target/x86_64-unknown-linux-musl/release/${{ github.event.repository.name }}
-          name: Latest Build
-          tag_name: ${{ github.sha }}
+          TOOLCHAIN_VERSION: static
+          RUSTTARGET: x86_64-unknown-linux-musl
+          MINIFY: true
