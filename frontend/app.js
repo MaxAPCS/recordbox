@@ -104,6 +104,8 @@ class MusicLibrary {
               <div class="track-meta">
                   <span><i class="fas fa-user"></i> ${track.metadata?.artists?.join(', ') || 'Unknown Artist'}</span>
                   <span><i class="fas fa-compact-disc"></i> ${track.metadata?.album || 'Unknown Album'}</span>
+                  <span><i class="fas fa-calendar"></i> ${track.metadata?.date || 'Unknown Date'}</span>
+                  ${track.metadata?.lyrics ? '<span><i class="fas fa-microphone"></i></span>' : ""}
               </div>
           </div>
           <div class="track-actions">
@@ -182,6 +184,8 @@ class MusicLibrary {
         metaEl.innerHTML = `
           <span><i class="fas fa-user"></i> ${metadata.artists?.join(', ') || 'Unknown Artist'}</span>
           <span><i class="fas fa-compact-disc"></i> ${metadata.album || 'Unknown Album'}</span>
+          <span><i class="fas fa-calendar"></i> ${metadata.date || 'Unknown Date'}</span>
+          ${metadata.lyrics ? '<span><i class="fas fa-microphone"></i></span>' : ""}
       `;
     }
 
@@ -364,11 +368,12 @@ class MusicLibrary {
             card.innerHTML = `
               <div class="candidate-title">${candidate.title || 'Untitled'}</div>
               <div class="candidate-meta">
-                  <span>Artists: ${candidate.artists?.join(', ') || 'Unknown'}</span>
-                  <span>Album: ${candidate.album || 'Unknown'}</span>
-                  <span>Date: ${candidate.date || 'Unknown'}</span>
+                <span><i class="fas fa-user"></i> ${candidate.artists?.join(', ') || 'Unknown Artist'}</span>
+                <span><i class="fas fa-compact-disc"></i> ${candidate.album || 'Unknown Album'}</span>
+                <span><i class="fas fa-calendar"></i> ${candidate.date || 'Unknown Date'}</span>
+                ${candidate.lyrics ? '<span><i class="fas fa-microphone"></i></span>' : ""}
               </div>
-          `;
+            `;
 
             card.addEventListener('click', () => this.selectAutotagCandidate(candidate));
             container.appendChild(card);

@@ -109,7 +109,7 @@ pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, (StatusCode, String)> {
             ))?;
             Track::parse(path).ok_or((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Track Parse Failed".to_string(),
+                "Track Parse Failed. Format: {provider}_{id}.m4a".to_string(),
             ))
         })
         .collect::<Result<Vec<_>, _>>()?)
