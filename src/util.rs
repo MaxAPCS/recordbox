@@ -19,19 +19,22 @@ impl Configuration {
         })
     }
 
-    pub(crate) fn get_directory(&self, dir: &str) -> Result<std::path::PathBuf, String> {
-        match self.config.get_string(dir) {
-            Err(_) => Err(format!("Directory '{}' unset", dir)),
+    pub(crate) fn get_directory(&self) -> Result<std::path::PathBuf, String> {
+        const DIR: &'static str = "library";
+        match self.config.get_string(DIR) {
+            Err(_) => Err(format!("Directory '{}' unset", DIR)),
             Ok(path) => match fs::canonicalize(&path) {
-                Err(_) => Err(format!("Directory '{}' does not exist", dir)),
-                Ok(path) if !path.is_dir() => Err(format!("Directory '{}' is of wrong type", dir)),
+                Err(_) => Err(format!("Directory '{}' does not exist", DIR)),
+                Ok(path) if !path.is_dir() => Err(format!("Directory '{}' is of wrong type", DIR)),
                 Ok(path) => Ok(path),
             },
         }
     }
 
-    pub(crate) fn get_bool(&self, key: &str) -> Option<bool> {
-        self.config.get_bool(key).ok()
+    pub(crate) fn address(&self) -> Result<String, &'static str> {
+        self.config
+            .get_string("address")
+            .or(Err("Address unset (required)"))
     }
 }
 

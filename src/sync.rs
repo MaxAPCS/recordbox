@@ -1,6 +1,7 @@
 use crate::util;
 use axum::http::Uri;
 use mp4ameta::{ReadConfig, WriteConfig};
+use reqwest::StatusCode;
 use std::{fs, path::Path};
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -25,13 +26,16 @@ impl std::fmt::Display for Track {
     }
 }
 
-pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), String> {
+pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), (StatusCode, String)> {
     if dst_dir
         .join(track.to_string())
         .with_added_extension("m4a")
         .is_file()
     {
-        return Ok(());
+        return Err((
+            StatusCode::NOT_MODIFIED,
+            "Track Already Downloaded".to_string(),
+        ));
     }
     let uri = match track.provider.to_lowercase().as_str() {
         "youtube" => Uri::builder()
@@ -39,8 +43,13 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), String> 
             .scheme("https")
             .path_and_query(format!("/watch?v={}", track.id))
             .build()
-            .map_err(|_| "Invalid URL")?,
-        _ => return Err("Invalid Provider".to_string()),
+            .or(Err((
+                StatusCode::BAD_REQUEST,
+                "Invalid Track ID".to_string(),
+            )))?,
+        _ => {
+            return Err((StatusCode::BAD_REQUEST, "Invalid Provider".to_string()));
+        }
     };
     let cmd = tokio::process::Command::new("yt-dlp")
         .current_dir(dst_dir)
@@ -74,36 +83,60 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), String> 
         .stdout(std::process::Stdio::null())
         .spawn();
     match cmd {
-        Err(e) => Err(e.to_string()),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
         Ok(mut child) => match child.wait().await {
-            Err(e) => Err(e.to_string()),
-            Ok(e) if !e.success() => Err(e.to_string()),
+            Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
+            Ok(e) if !e.success() => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
             Ok(_) => Ok(()),
         },
     }
 }
 
-pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, String> {
+pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, (StatusCode, String)> {
     Ok(fs::read_dir(dst_dir)
-        .map_err(|e| e.to_string())?
-        .map_while(|f| Track::parse(f.ok()?.path().file_prefix()?.to_str()?))
-        .collect())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .map(|f| {
+            let Ok(file) = f else {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Track Read Error".to_string(),
+                ));
+            };
+            let file = file.path();
+            let path = file.file_prefix().map(|fp| fp.to_str()).flatten().ok_or((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Track Path Invalid".to_string(),
+            ))?;
+            Track::parse(path).ok_or((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Track Parse Failed".to_string(),
+            ))
+        })
+        .collect::<Result<Vec<_>, _>>()?)
 }
 
-pub fn track_delete(track: Track, dst_dir: &Path) -> Result<(), String> {
-    match fs::remove_file(dst_dir.join(track.to_string()).with_added_extension("m4a")) {
-        Ok(_) => Ok(()),
-        Err(e) => match e.kind() {
-            std::io::ErrorKind::NotFound => Ok(()),
-            std::io::ErrorKind::PermissionDenied => Err("Forbidden".to_string()),
-            std::io::ErrorKind::ReadOnlyFilesystem => Err("Forbidden".to_string()),
-            _ => Err(e.to_string()),
+pub fn track_delete(track: Track, dst_dir: &Path) -> Result<(), (StatusCode, String)> {
+    fs::remove_file(dst_dir.join(track.to_string()).with_added_extension("m4a")).map_err(
+        |e| match e.kind() {
+            std::io::ErrorKind::NotFound => (
+                StatusCode::NOT_MODIFIED,
+                "Track Already Deleted".to_string(),
+            ),
+            std::io::ErrorKind::PermissionDenied => (
+                StatusCode::FORBIDDEN,
+                "Filesystem Permission Denied".to_string(),
+            ),
+            std::io::ErrorKind::ReadOnlyFilesystem => (
+                StatusCode::FORBIDDEN,
+                "Filesystem Read-Only".to_string(), //
+            ),
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
         },
-    }
+    )
 }
 
-pub fn track_info(track: &Track, dst_dir: &Path) -> Result<mp4ameta::Tag, String> {
-    match mp4ameta::Tag::read_with_path(
+pub fn track_info(track: &Track, dst_dir: &Path) -> Result<mp4ameta::Tag, (StatusCode, String)> {
+    mp4ameta::Tag::read_with_path(
         dst_dir.join(track.to_string()).with_added_extension("m4a"),
         &ReadConfig {
             read_image_data: false,
@@ -112,20 +145,28 @@ pub fn track_info(track: &Track, dst_dir: &Path) -> Result<mp4ameta::Tag, String
             read_audio_info: true,
             ..Default::default()
         },
-    ) {
-        Ok(t) => Ok(t),
-        Err(e) => Err(match e.kind {
-            mp4ameta::ErrorKind::Io(err) => match err.kind() {
-                std::io::ErrorKind::NotFound => "Not Found".to_string(),
-                std::io::ErrorKind::PermissionDenied => "Forbidden".to_string(),
-                _ => err.to_string(),
-            },
-            _ => "Corrupted File".to_string(),
-        }),
-    }
+    )
+    .map_err(|e| match e.kind {
+        mp4ameta::ErrorKind::Io(err) => match err.kind() {
+            std::io::ErrorKind::NotFound => (StatusCode::NOT_FOUND, "Track Not Found".to_string()),
+            std::io::ErrorKind::PermissionDenied => (
+                StatusCode::FORBIDDEN,
+                "Filesystem Permission Denied".to_string(),
+            ),
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+        },
+        _ => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Corrupted File".to_string(),
+        ),
+    })
 }
 
-pub fn track_edit(track: Track, dst_dir: &Path, meta: util::Metadata) -> Result<(), String> {
+pub fn track_edit(
+    track: Track,
+    dst_dir: &Path,
+    meta: util::Metadata,
+) -> Result<(), (StatusCode, String)> {
     let mut tag = track_info(&track, dst_dir)?;
     meta.apply(&mut tag);
     tag.write_with_path(
@@ -138,11 +179,20 @@ pub fn track_edit(track: Track, dst_dir: &Path, meta: util::Metadata) -> Result<
     )
     .map_err(|e| match e.kind {
         mp4ameta::ErrorKind::Io(err) => match err.kind() {
-            std::io::ErrorKind::NotFound => "Not Found".to_string(),
-            std::io::ErrorKind::PermissionDenied => "Forbidden".to_string(),
-            std::io::ErrorKind::ReadOnlyFilesystem => "Forbidden".to_string(),
-            _ => err.to_string(),
+            std::io::ErrorKind::NotFound => (StatusCode::NOT_FOUND, "Track Not Found".to_string()),
+            std::io::ErrorKind::PermissionDenied => (
+                StatusCode::FORBIDDEN,
+                "Filesystem Permission Denied".to_string(),
+            ),
+            std::io::ErrorKind::ReadOnlyFilesystem => (
+                StatusCode::FORBIDDEN,
+                "Filesystem Read-Only".to_string(), //
+            ),
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         },
-        _ => "Corrupted File".to_string(),
+        _ => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Corrupted File".to_string(),
+        ),
     })
 }

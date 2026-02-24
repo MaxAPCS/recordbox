@@ -8,13 +8,13 @@ description = "A fluent music library manager"
 axum = { version = "0.8.8", default-features = false, features = ["http2", "tokio", "json"] }
 config = { version = "0.15.19", features = ["yaml"] }
 mp4ameta = "0.13.0"
-musicbrainz_rs = "0.12.0"
-reqwest = { version = "0.13.1", default-features = false, features = ["charset", "default-tls", "http2", "gzip", "json", "query"] }
-rusqlite = "0.38.0"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_sqlite_jsonb = "0.2.1"
-tokio = { version = "1.49.0", default-features = false, features = ["macros", "rt-multi-thread", "process"] }
-tower-http = { version = "*", features = ["fs"] }
+musicbrainz_rs = { version = "0.12", default-features = false, features = ["async", "rate_limit", "rustls"] }
+reqwest = { version = "0.13", default-features = false, features = ["charset", "rustls", "http2", "gzip", "json", "query"] }
+rusqlite = { version = "0.38", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_sqlite_jsonb = "0.2"
+static-serve = "0.5"
+tokio = { version = "1.49", default-features = false, features = ["macros", "rt-multi-thread", "process"] }
 
 [profile.release]
 codegen-units = 1
