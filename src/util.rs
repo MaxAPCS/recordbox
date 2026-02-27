@@ -24,7 +24,7 @@ impl Configuration {
         })
     }
 
-    pub(crate) fn get_directory(&self) -> Result<std::path::PathBuf, String> {
+    pub(crate) fn get_library(&self) -> Result<std::path::PathBuf, String> {
         const DIR: &'static str = "library";
         match self.config.get_string(DIR) {
             Err(_) => Err(format!("Directory '{}' unset", DIR)),
@@ -92,6 +92,44 @@ impl Metadata {
         }
         if let Some(isrc) = self.isrc {
             tag.set_isrc(isrc);
+        }
+    }
+
+    pub(crate) fn write(self, tag: &mut mp4ameta::Tag) {
+        if let Some(title) = self.title {
+            tag.set_title(title);
+        } else {
+            tag.remove_title();
+        }
+        if !self.artists.is_empty() {
+            tag.set_artists(self.artists);
+        } else {
+            tag.remove_artists();
+        }
+        if let Some(album) = self.album {
+            tag.set_album(album);
+        } else {
+            tag.remove_album();
+        }
+        if let Some(date) = self.date {
+            tag.set_year(date.replace("-", ""));
+        } else {
+            tag.remove_year();
+        }
+        if !self.genres.is_empty() {
+            tag.set_genres(self.genres);
+        } else {
+            tag.remove_genres();
+        }
+        if let Some(lyrics) = self.lyrics {
+            tag.set_lyrics(lyrics);
+        } else {
+            tag.remove_lyrics();
+        }
+        if let Some(isrc) = self.isrc {
+            tag.set_isrc(isrc);
+        } else {
+            tag.remove_isrc();
         }
     }
 }

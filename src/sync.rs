@@ -4,65 +4,17 @@ use mp4ameta::{ReadConfig, WriteConfig};
 use reqwest::StatusCode;
 use std::{fs, path::Path};
 
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct Track {
-    pub(crate) provider: String,
-    pub(crate) id: String,
-}
-
-impl Track {
-    fn parse(str: &str) -> Option<Self> {
-        let (p, i) = str.split_once("_")?;
-        Some(Self {
-            provider: p.to_string(),
-            id: i.to_string(),
-        })
-    }
-}
-
-impl std::fmt::Display for Track {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}_{}", self.provider, self.id)
-    }
-}
-
-pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), (StatusCode, String)> {
-    if dst_dir
-        .join(track.to_string())
-        .with_added_extension("m4a")
-        .is_file()
-    {
-        return Err((
-            StatusCode::NOT_MODIFIED,
-            "Track Already Downloaded".to_string(),
-        ));
-    }
-    let uri = match track.provider.to_lowercase().as_str() {
-        "youtube" => Uri::builder()
-            .authority("youtube.com")
-            .scheme("https")
-            .path_and_query(format!("/watch?v={}", track.id))
-            .build()
-            .or(Err((
-                StatusCode::BAD_REQUEST,
-                "Invalid Track ID".to_string(),
-            )))?,
-        _ => {
-            return Err((StatusCode::BAD_REQUEST, "Invalid Provider".to_string()));
-        }
-    };
+pub async fn track_download(url: Uri, dst_dir: &Path) -> Result<(), (StatusCode, String)> {
     let cmd = tokio::process::Command::new("yt-dlp")
         .current_dir(dst_dir)
         .args([
-            uri.to_string().as_str(),
+            url.to_string().as_str(),
+            "--quiet",
             "--ignore-config",
+            "--no-playlist",
             "--no-overwrites",
             "-o",
-            track
-                .to_string()
-                .replace(std::path::MAIN_SEPARATOR_STR, "")
-                .replace(".", "")
-                .as_str(),
+            "%(extractor)s_%(id)s.%(ext)s",
             "-f",
             "m4a/bestaudio/best",
             "-x",
@@ -83,6 +35,10 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), (StatusC
         .stdout(std::process::Stdio::null())
         .spawn();
     match cmd {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err((
+            StatusCode::METHOD_NOT_ALLOWED,
+            "Track Download requires yt-dlp".to_string(),
+        )),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
         Ok(mut child) => match child.wait().await {
             Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string())),
@@ -92,7 +48,7 @@ pub async fn track_download(track: Track, dst_dir: &Path) -> Result<(), (StatusC
     }
 }
 
-pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, (StatusCode, String)> {
+pub fn track_list(dst_dir: &Path) -> Result<Vec<String>, (StatusCode, String)> {
     Ok(fs::read_dir(dst_dir)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .filter_map(|f| {
@@ -101,6 +57,12 @@ pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, (StatusCode, String)> {
             };
             let file = file.path();
             if !file.is_file() {
+                return None;
+            }
+            let Some(ext) = file.extension() else {
+                return None;
+            };
+            if !ext.eq_ignore_ascii_case("m4a") {
                 return None;
             }
             let Some(path) = file.file_prefix().map(|fp| fp.to_str()).flatten() else {
@@ -112,40 +74,32 @@ pub fn track_list(dst_dir: &Path) -> Result<Vec<Track>, (StatusCode, String)> {
             if path.starts_with(".") {
                 return None;
             }
-            Some(Track::parse(path).ok_or((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!(
-                    "Track Parse Failed. Got: {}, Correct Format: {{provider}}_{{id}}.m4a",
-                    path
-                ),
-            )))
+            Some(Ok(path.to_string()))
         })
         .collect::<Result<Vec<_>, _>>()?)
 }
 
-pub fn track_delete(track: Track, dst_dir: &Path) -> Result<(), (StatusCode, String)> {
-    fs::remove_file(dst_dir.join(track.to_string()).with_added_extension("m4a")).map_err(
-        |e| match e.kind() {
-            std::io::ErrorKind::NotFound => (
-                StatusCode::NOT_MODIFIED,
-                "Track Already Deleted".to_string(),
-            ),
-            std::io::ErrorKind::PermissionDenied => (
-                StatusCode::FORBIDDEN,
-                "Filesystem Permission Denied".to_string(),
-            ),
-            std::io::ErrorKind::ReadOnlyFilesystem => (
-                StatusCode::FORBIDDEN,
-                "Filesystem Read-Only".to_string(), //
-            ),
-            _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
-        },
-    )
+pub fn track_delete(track: &str, dst_dir: &Path) -> Result<(), (StatusCode, String)> {
+    fs::remove_file(dst_dir.join(track).with_added_extension("m4a")).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => (
+            StatusCode::NOT_MODIFIED,
+            "Track Already Deleted".to_string(),
+        ),
+        std::io::ErrorKind::PermissionDenied => (
+            StatusCode::FORBIDDEN,
+            "Filesystem Permission Denied".to_string(),
+        ),
+        std::io::ErrorKind::ReadOnlyFilesystem => (
+            StatusCode::FORBIDDEN,
+            "Filesystem Read-Only".to_string(), //
+        ),
+        _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+    })
 }
 
-pub fn track_info(track: &Track, dst_dir: &Path) -> Result<mp4ameta::Tag, (StatusCode, String)> {
+pub fn track_info(track: &str, dst_dir: &Path) -> Result<mp4ameta::Tag, (StatusCode, String)> {
     mp4ameta::Tag::read_with_path(
-        dst_dir.join(track.to_string()).with_added_extension("m4a"),
+        dst_dir.join(track).with_added_extension("m4a"),
         &ReadConfig {
             read_image_data: false,
             read_chapter_list: false,
@@ -171,14 +125,19 @@ pub fn track_info(track: &Track, dst_dir: &Path) -> Result<mp4ameta::Tag, (Statu
 }
 
 pub fn track_edit(
-    track: Track,
+    track: &str,
     dst_dir: &Path,
     meta: util::Metadata,
+    patch: bool,
 ) -> Result<(), (StatusCode, String)> {
-    let mut tag = track_info(&track, dst_dir)?;
-    meta.apply(&mut tag);
+    let mut tag = track_info(track, dst_dir)?;
+    if patch {
+        meta.apply(&mut tag);
+    } else {
+        meta.write(&mut tag);
+    }
     tag.write_with_path(
-        dst_dir.join(track.to_string()).with_added_extension("m4a"),
+        dst_dir.join(track).with_added_extension("m4a"),
         &WriteConfig {
             write_chapter_list: false,
             write_chapter_track: false,
