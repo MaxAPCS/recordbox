@@ -1,24 +1,15 @@
-[package]
-name = "recordbox"
-version = "0.1.0"
-edition = "2024"
-description = "A fluent music library manager"
+[workspace]
+members = ["backend", "frontend"]
+resolver = "3"
 
-[dependencies]
-axum = { version = "0.8.8", default-features = false, features = ["http2", "tokio", "json"] }
-config = { version = "0.15.19", features = ["yaml"] }
-mp4ameta = "0.13.0"
-musicbrainz_rs = { version = "0.12", default-features = false, features = ["async", "rate_limit", "rustls"] }
-reqwest = { version = "0.13", default-features = false, features = ["charset", "rustls", "http2", "gzip", "json", "query"] }
-rusqlite = { version = "0.38", features = ["bundled"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_sqlite_jsonb = "0.2"
-static-serve = "0.5"
-tokio = { version = "1.49", default-features = false, features = ["macros", "rt-multi-thread", "process"] }
+[workspace.package]
+version = "0.1.0"
+license = "GPL-3.0-only"
+edition = "2024"
 
 [profile.release]
-codegen-units = 1
-lto = "fat"
 opt-level = 3
+lto = "fat"
+codegen-units = 1
 panic = "abort"
 strip = "symbols"

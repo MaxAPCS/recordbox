@@ -1,0 +1,18 @@
+[package]
+name = "recordbox-ui"
+description = "A fluent music library manager frontend"
+
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+bytemuck = { version = "1.25.0", features = ["wasm_simd", "derive"] }
+console_error_panic_hook = "0.1.7"
+console_log = { version = "1.0.0", features = ["color"] }
+wasm-bindgen = "0.2.114"
+web-sys = { version = "0.3.91", features = ["Document", "Window", "Element"] }
+wgpu = { version = "28.0.0", default-features = false, features = ["webgpu", "wgsl", "web", "std", "parking_lot"] }

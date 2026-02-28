@@ -4,10 +4,11 @@ use static_serve::embed_assets;
 use std::sync::Arc;
 
 embed_assets!(
-    "frontend",
+    "frontend/pkg",
     compress = true,
     strip_html_ext = true,
-    cache_busted_paths = ["app.js", "index.html", "style.css"]
+    ignore_paths = [".gitignore"],
+    cache_busted_paths = ["index.html", "favicon.svg"]
 );
 
 pub async fn serve(configuration: util::Configuration) {
