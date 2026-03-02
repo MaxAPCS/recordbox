@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "backend"
+		},
+		{
+			"path": "frontend"
+		}
+	],
+	"settings": {  
+		"rust-analyzer.cargo.target": "wasm32-unknown-unknown" // just so web targets appear in frontend
+	}
+}

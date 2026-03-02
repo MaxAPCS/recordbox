@@ -7,12 +7,18 @@ edition.workspace = true
 license.workspace = true
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib"]
 
 [dependencies]
+anyhow = "1.0.102"
 bytemuck = { version = "1.25.0", features = ["wasm_simd", "derive"] }
-console_error_panic_hook = "0.1.7"
-console_log = { version = "1.0.0", features = ["color"] }
+console_error_panic_hook = { version = "0.1.7", optional = true }
+console_log = { version = "1.0.0", features = ["color"], optional = true }
 wasm-bindgen = "0.2.114"
-web-sys = { version = "0.3.91", features = ["Document", "Window", "Element"] }
-wgpu = { version = "28.0.0", default-features = false, features = ["webgpu", "wgsl", "web", "std", "parking_lot"] }
+wasm-bindgen-futures = "0.4.64"
+web-sys = { version = "0.3.91", features = ["Document", 'Headers', "HtmlCanvasElement", 'Request', 'RequestInit', 'Response', "Window"] }
+wgpu = { version = "28.0.0", default-features = false, features = ["webgpu", "wgsl", "std", "parking_lot"] }
+winit = "0.30.12"
+
+[features]
+console = ["console_error_panic_hook", "console_log"]
