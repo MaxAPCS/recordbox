@@ -69,12 +69,11 @@ impl RenderState {
             .unwrap();
 
         // Obtain the Configuration
-        let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps
-            .formats
+        let surface_formats = surface.get_capabilities(&adapter).formats;
+        let surface_format = surface_formats
             .iter()
             .find(|f| f.is_srgb())
-            .unwrap_or(&surface_caps.formats[0])
+            .unwrap_or(&surface_formats[0])
             .clone();
         let size = window.inner_size();
         let config = SurfaceConfiguration {
@@ -82,9 +81,9 @@ impl RenderState {
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: surface_caps.present_modes[0],
-            alpha_mode: surface_caps.alpha_modes[0],
-            view_formats: vec![],
+            present_mode: PresentMode::AutoVsync,
+            alpha_mode: CompositeAlphaMode::PreMultiplied,
+            view_formats: Vec::new(),
             desired_maximum_frame_latency: 2,
         };
 
@@ -133,7 +132,7 @@ impl RenderState {
                 entry_point: Some("fs_main"),
                 targets: &[Some(ColorTargetState {
                     format: surface_format,
-                    blend: Some(BlendState::REPLACE),
+                    blend: Some(BlendState::ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
                 })],
                 compilation_options: Default::default(),
@@ -276,7 +275,7 @@ impl RenderState {
                         mip_level_count: 1,
                         sample_count: 1,
                         dimension: TextureDimension::D2,
-                        format: TextureFormat::Rgba8UnormSrgb,
+                        format: TextureFormat::Rgba8Unorm,
                         usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
                         view_formats: &[],
                     },
@@ -312,17 +311,15 @@ impl RenderState {
             });
 
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("Render Pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view: &view,
                     ops: Operations {
-                        load: LoadOp::Clear(Color::BLACK),
+                        load: unsafe { LoadOp::DontCare(LoadOpDontCare::enabled()) },
                         store: StoreOp::Store,
                     },
                     resolve_target: None,
                     depth_slice: None,
                 })],
-                depth_stencil_attachment: None,
                 ..Default::default()
             });
 

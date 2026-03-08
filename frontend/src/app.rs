@@ -16,15 +16,21 @@ impl App {
             // all images must be 1920 x 1080, .resize_exact(nwidth, nheight, filter)
             background: ui::Element {
                 shape: ui::Trapezoid::default(),
-                image: image::load_from_memory(include_bytes!("assets/background.png"))
-                    .unwrap()
-                    .into_rgba8(),
+                image: image::load_from_memory_with_format(
+                    include_bytes!("assets/background.png"),
+                    image::ImageFormat::Png,
+                )
+                .unwrap()
+                .into_rgba8(),
             },
             trackedit: ui::Element {
-                shape: ui::Trapezoid::from_square(0., 0., 0.5),
-                image: image::load_from_memory(include_bytes!("assets/track.png"))
-                    .unwrap()
-                    .into_rgba8(),
+                shape: ui::Trapezoid::default(),
+                image: image::load_from_memory_with_format(
+                    include_bytes!("assets/track.png"),
+                    image::ImageFormat::Png,
+                )
+                .unwrap()
+                .into_rgba8(),
             },
             tracks: Arc::new(RwLock::new(Vec::new())),
         };
