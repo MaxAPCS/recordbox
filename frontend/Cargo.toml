@@ -10,10 +10,10 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-anyhow = "1.0.102"
-bytemuck = { version = "1.25.0", features = ["wasm_simd", "derive"] }
+bytemuck = { version = "1.25.0", features = ["derive", "min_const_generics", "wasm_simd"] }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 console_log = { version = "1.0.0", features = ["color"], optional = true }
+image = { version = "0.25.9", default-features = false, features = ["png"] }
 wasm-bindgen = "0.2.114"
 wasm-bindgen-futures = "0.4.64"
 web-sys = { version = "0.3.91", features = ["Document", 'Headers', "HtmlCanvasElement", 'Request', 'RequestInit', 'Response', "Window"] }

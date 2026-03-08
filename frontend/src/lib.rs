@@ -1,10 +1,11 @@
 use crate::app::App;
+use std::sync::Arc;
 use wasm_bindgen::{JsValue, UnwrapThrowExt, prelude::wasm_bindgen};
 use winit::event_loop::EventLoop;
 
 mod app;
+mod boilerplate;
 mod request;
-mod state;
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
@@ -16,8 +17,10 @@ pub fn run() -> Result<(), JsValue> {
     let event_loop = EventLoop::with_user_event()
         .build()
         .expect_throw("Init Failed: EventLoop");
-    let mut app = App::new(&event_loop);
-    event_loop.run_app(&mut app).map_err(|e| e.to_string())?;
+    let mut appwindow = boilerplate::window::AppWindow::new(&event_loop, Arc::new(App::new()));
+    event_loop
+        .run_app(&mut appwindow)
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
