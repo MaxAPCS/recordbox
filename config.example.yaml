@@ -1,0 +1,2 @@
+library: "./library" # RECORDBOX_LIBRARY
+address: "0.0.0.0:4000" # RECORDBOX_ADDRESS

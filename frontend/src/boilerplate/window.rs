@@ -4,6 +4,7 @@ use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use wgpu::SurfaceError;
 use winit::{
     application::ApplicationHandler,
+    dpi::PhysicalPosition,
     event::*,
     event_loop::{ActiveEventLoop, EventLoop},
     keyboard::PhysicalKey,
@@ -14,6 +15,8 @@ pub struct AppWindow {
     proxy: winit::event_loop::EventLoopProxy<RenderState>,
     state: Option<RenderState>,
     scene: Arc<dyn ui::Scene>,
+    window: Option<Arc<Window>>,
+    mouse: Option<PhysicalPosition<f64>>,
 }
 
 impl AppWindow {
@@ -22,6 +25,8 @@ impl AppWindow {
             state: None,
             proxy: event_loop.create_proxy(),
             scene,
+            window: None,
+            mouse: None,
         }
     }
 }
@@ -40,6 +45,7 @@ impl ApplicationHandler<RenderState> for AppWindow {
         let window_attributes = Window::default_attributes().with_canvas(Some(canvas));
 
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
+        self.window = Some(window.clone());
         let proxy = self.proxy.clone();
         let scene = self.scene.clone();
         wasm_bindgen_futures::spawn_local(async move {
@@ -72,11 +78,24 @@ impl ApplicationHandler<RenderState> for AppWindow {
                 }
                 Ok(_) => {}
             },
+            WindowEvent::CursorMoved { position, .. } => self.mouse = Some(position),
             WindowEvent::MouseInput {
                 state: button_state,
                 button,
                 ..
-            } => state.handle_mouse(button, button_state.is_pressed()),
+            } => {
+                if let Some(mouse) = self.mouse
+                    && let Some(window) = &self.window
+                {
+                    let size = window.inner_size();
+                    let pos = (
+                        2. * (mouse.x as f32) / (size.width as f32) - 1.,
+                        1. - 2. * (mouse.y as f32) / (size.height as f32),
+                    );
+                    self.scene
+                        .handle_mouse(button, pos, button_state.is_pressed())
+                }
+            }
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
@@ -85,7 +104,7 @@ impl ApplicationHandler<RenderState> for AppWindow {
                         ..
                     },
                 ..
-            } => state.handle_key(code, key_state.is_pressed()),
+            } => self.scene.handle_key(code, key_state.is_pressed()),
             _ => {}
         }
     }

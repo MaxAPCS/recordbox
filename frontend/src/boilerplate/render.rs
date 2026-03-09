@@ -6,7 +6,7 @@ use wgpu::{
     wgt::{DeviceDescriptor, SamplerDescriptor, TextureViewDescriptor},
     *,
 };
-use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
+use winit::window::Window;
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -185,11 +185,6 @@ impl RenderState {
         self.surface.configure(&self.device, &self.config);
     }
 
-    #[allow(unused)]
-    pub fn handle_key(&mut self, key: KeyCode, pressed: bool) {}
-    #[allow(unused)]
-    pub fn handle_mouse(&mut self, button: MouseButton, pressed: bool) {}
-
     pub fn render(&mut self) -> Result<(), SurfaceError> {
         self.window.request_redraw();
 
@@ -294,7 +289,11 @@ impl RenderState {
                     ..Default::default()
                 });
 
-            let sampler = self.device.create_sampler(&SamplerDescriptor::default());
+            let sampler = self.device.create_sampler(&SamplerDescriptor {
+                min_filter: FilterMode::Linear,
+                mag_filter: FilterMode::Linear,
+                ..Default::default()
+            });
             let texture_bg = self.device.create_bind_group(&BindGroupDescriptor {
                 label: Some("Texture Bind Group"),
                 layout: &self.pipeline.get_bind_group_layout(0),
