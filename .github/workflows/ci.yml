@@ -2,7 +2,7 @@ name: Static Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main basic-frontend ]
 
 jobs:
   build:
@@ -11,25 +11,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli --version 0.2.114
       - name: Install musl dependencies
         run: sudo apt-get update && sudo apt-get install -y musl musl-dev
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-musl, wasm32-unknown-unknown
-      
-      - name: Build Frontend
-        run: cargo build -p recordbox-ui --release --locked --target wasm32-unknown-unknown
-      - name: Bind WASM
-        run: wasm-bindgen --out-dir frontend/pkg --target web target/wasm32-unknown-unknown/release/recordbox_ui.wasm
-      - name: Optimize WASM
-        uses: JohannesDeml/binaryen-wasm-opt@v1
-        with:
-          file: frontend/pkg/recordbox_ui_bg.wasm
-          options: -Oz -all --fast-math
-
       - name: Build Backend
         run: cargo build -p recordbox --release --locked --target x86_64-unknown-linux-musl
       - name: Upload Artifact

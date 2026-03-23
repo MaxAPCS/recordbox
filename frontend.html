@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Music Library Manager</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+    }
+
+    body {
+      background: #0a0c10;
+      color: #e2e8f0;
+      padding: 1rem;
+    }
+
+    .app-container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 4px;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      flex: none;
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: whitesmoke;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-wrap-mode: nowrap;
+    }
+
+    #searchInput {
+      background: #111318;
+      border-radius: 2rem;
+      border: 2px solid #2d2f36;
+      color: gainsboro;
+      flex: auto 1 100px;
+      font-size: 0.9rem;
+      margin-left: auto;
+      outline: none;
+      padding: 0.6rem 1rem;
+      transition: all 0.2s;
+    }
+
+    #searchInput:focus {
+      border-color: darkseagreen;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary {
+      align-items: center;
+      background: rgb(46, 125, 50, 0.64);
+      border-radius: 2rem;
+      border: none;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      color: white;
+      cursor: pointer;
+      display: inline-flex;
+      flex: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      gap: 8px;
+      padding: 0.5rem 1.25rem;
+      transition: 0.2s;
+      text-wrap-mode: nowrap;
+    }
+
+    .btn-primary:hover {
+      background: rgb(56, 142, 60, 0.76);
+    }
+
+    .btn-tonal {
+      align-items: center;
+      background: rgb(46, 125, 50, 0.24);
+      border-radius: 2rem;
+      border: none;
+      color: rgb(165, 214, 167);
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 0.8rem;
+      font-weight: 500;
+      gap: 6px;
+      padding: 0.4rem 0.9rem;
+      transition: 0.2s;
+    }
+
+    .btn-tonal:hover {
+      background: rgb(56, 142, 60, 0.36);
+    }
+
+    .btn-danger {
+      align-items: center;
+      background: rgb(211, 47, 47, .24);
+      border-radius: 2rem;
+      border: none;
+      color: #E57373;
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 0.75rem;
+      font-weight: 500;
+      gap: 6px;
+      padding: 0.4rem 0.8rem;
+      transition: 0.2s;
+    }
+
+    .btn-danger:hover {
+      background: rgb(229, 57, 53, .36);
+      color: #EF9A9A;
+    }
+
+    .tracks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .track-card {
+      background: #111318;
+      border-radius: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      padding: 1rem;
+      transition: 0.2s ease-out;
+      border: 2px solid #2d2f36;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .track-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.5);
+      border-color: darkseagreen;
+    }
+
+    .track-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: whitesmoke;
+      letter-spacing: -0.2px;
+      line-height: 1.3;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .track-subtitle {
+      font-size: 0.85rem;
+      color: gainsboro;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .track-subtitle-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .track-genres {
+      font-size: 0.75rem;
+      color: gainsboro;
+      background: dimgray;
+      padding: 0.2rem 0.6rem;
+      border-radius: 2rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+    }
+
+    .track-icons {
+      display: flex;
+      gap: 0.8rem;
+    }
+
+    .track-icons span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+
+    .track-path {
+      font-size: 0.7rem;
+      font-family: 'SF Mono', monospace;
+      background: #1e1f24;
+      padding: 0.3rem 0.6rem;
+      border-radius: 2rem;
+      color: #9ca3af;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .empty-meta {
+      color: #6b7280;
+      font-style: italic;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      border-top: 1px solid #2d2f36;
+      padding-top: 0.6rem;
+      margin-top: auto;
+    }
+
+    .loading-spinner {
+      text-align: center;
+      padding: 3rem;
+      color: rgb(46, 125, 50);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: all 0.2s;
+    }
+
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .modal {
+      background: #111318;
+      border-radius: 1.75rem;
+      max-width: 650px;
+      width: 90%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.5);
+      animation: modalPop 0.2s ease-out;
+      border: 1px solid #2d2f36;
+    }
+
+    @keyframes modalPop {
+      from {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #2d2f36;
+    }
+
+    .modal-header h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .edit-form-group {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .edit-form-group label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .edit-form-group input,
+    .edit-form-group textarea {
+      background: #1e1f24;
+      border: 1px solid #3b3f4a;
+      border-radius: 1rem;
+      padding: 0.7rem 1rem;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      transition: 0.2s;
+      outline: none;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .edit-form-group input:focus,
+    .edit-form-group textarea:focus {
+      border-color: darkseagreen;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+
+    .edit-form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .hint-text {
+      font-size: 0.7rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .suggestion-item {
+      background: #1e1f24;
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid #2d2f36;
+      transition: 0.1s;
+    }
+
+    .suggestion-item:hover {
+      background: #25262e;
+    }
+
+    .suggestion-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .suggestion-subtitle {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0.3rem 0;
+    }
+
+    .suggestion-genres {
+      font-size: 0.7rem;
+      background: #2d2f36;
+      padding: 0.2rem 0.5rem;
+      border-radius: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      width: fit-content;
+    }
+
+    .suggestion-icons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.4rem;
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+
+    .textarea-urls {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      border: 1px solid #3b3f4a;
+      background: #1e1f24;
+      color: #e2e8f0;
+      font-family: monospace;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      resize: vertical;
+    }
+
+    .status-msg {
+      background: #1e293b;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      color: #C8E6C9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .material-icons {
+      font-size: 1.2em;
+      vertical-align: middle;
+    }
+
+    .inline-icon {
+      font-size: 1rem;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <div class="header">
+      <h1>
+        <span class="material-icons">music_note</span>
+        Music Manager
+      </h1>
+      <input type="text" id="searchInput" placeholder="Search" autocomplete="off">
+      <button id="addTrackBtn" class="btn-primary">
+        <span class="material-icons">add</span>
+        Add
+      </button>
+    </div>
+
+    <div id="tracksContainer" class="tracks-grid">
+      <div class="loading-spinner">
+        <span class="material-icons">music_note</span>
+        Loading...
+      </div>
+    </div>
+  </div>
+
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Modal title</h2>
+      </div>
+      <div id="modalBody" class="modal-body">
+        dynamic content
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const tracksContainer = document.getElementById('tracksContainer');
+      const searchInput = document.getElementById('searchInput');
+      const addTrackBtn = document.getElementById('addTrackBtn');
+      const modalOverlay = document.getElementById('modalOverlay');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+
+      let allTracks = [];
+      let searchTerm = '';
+
+      async function apiFetch(url, options = {}) {
+        const defaultHeaders = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+        const config = {
+          ...options,
+          headers: { ...defaultHeaders, ...options.headers },
+        };
+        try {
+          const response = await fetch(url, config);
+          if (!response.ok) {
+            let errorMsg = `HTTP ${response.status}`;
+            try {
+              const text = await response.text();
+              errorMsg = text || errorMsg;
+            } catch (_) { }
+            throw new Error(errorMsg);
+          }
+          if (response.status === 204) return null;
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+          }
+          return await response.text();
+        } catch (err) {
+          console.error(`API error [${url}]:`, err);
+          throw err;
+        }
+      }
+
+      function showStatusMessage(msgHtml, isError = false) {
+        const oldMsg = document.querySelector('.global-status');
+        if (oldMsg) oldMsg.remove();
+        const div = document.createElement('div');
+        div.className = 'status-msg global-status';
+        div.style.position = 'fixed';
+        div.style.bottom = '20px';
+        div.style.left = '20px';
+        div.style.right = 'auto';
+        div.style.zIndex = '1100';
+        div.style.backgroundColor = isError ? '#fee2e2' : '#e0f2fe';
+        div.style.color = isError ? '#991b1b' : '#075985';
+        div.innerHTML = msgHtml;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3800);
+      }
+
+      function escapeHtml(str) { return String(str).replace(/[&<>]/g, function (m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+      function escapeAttr(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+      function formatMetadata(meta) {
+        if (!meta) return null;
+        const title = meta.title || 'Untitled';
+        const artists = meta.artists && meta.artists.length ? meta.artists.join(', ') : null;
+        const album = meta.album || null;
+        const date = meta.date || null;
+        const genres = meta.genres && meta.genres.length ? meta.genres.join(', ') : null;
+        const hasLyrics = !!(meta.lyrics && meta.lyrics.trim());
+        const hasIsrc = !!(meta.isrc && meta.isrc.trim());
+        return { title, artists, album, date, genres, hasLyrics, hasIsrc };
+      }
+
+      function renderTracks(tracksToRender) {
+        if (!tracksContainer) return;
+        if (tracksToRender.length === 0) {
+          tracksContainer.innerHTML = `<div class="loading-spinner" style="grid-column:1/-1;">
+          <span class="material-icons">auto_awesome</span>
+          No tracks match "${escapeHtml(searchTerm)}". Try adding some music!
+        </div>`;
+          return;
+        }
+
+        tracksContainer.innerHTML = tracksToRender.map(track => {
+          const meta = track.metadata;
+          const formatted = meta ? formatMetadata(meta) : null;
+          const pathShort = track.id.length > 60 ? track.id.slice(0, 57) + '...' : track.id;
+          const hasMetadata = !track.loadingMeta && formatted !== null;
+
+          let subtitleParts = [];
+          if (hasMetadata) {
+            if (formatted.artists) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">mic</span> ${escapeHtml(formatted.artists)}</span>`);
+            if (formatted.album) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">album</span> ${escapeHtml(formatted.album)}</span>`);
+            if (formatted.date) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">calendar_today</span> ${escapeHtml(formatted.date)}</span>`);
+          }
+
+          let iconsHtml = '';
+          if (hasMetadata) {
+            if (formatted.hasIsrc) iconsHtml += `<span><span class="material-icons">tag</span>ISRC</span>`;
+            if (formatted.hasLyrics) iconsHtml += `<span><span class="material-icons">lyrics</span>Lyrics</span>`;
+          }
+
+          let mainContent;
+          if (track.loadingMeta) {
+            mainContent = `
+            <div class="track-path">
+              <span class="material-icons" style="font-size: 0.9rem;">folder</span>
+              ${escapeHtml(pathShort)}
+            </div>
+            <div class="empty-meta"><span class="material-icons inline-icon">hourglass_empty</span> Loading metadata...</div>
+          `;
+          } else if (!hasMetadata) {
+            mainContent = `
+            <div class="track-path">
+              <span class="material-icons" style="font-size: 0.9rem;">folder</span>
+              ${escapeHtml(pathShort)}
+            </div>
+            <div class="empty-meta"><span class="material-icons inline-icon">warning</span> No metadata loaded</div>
+          `;
+          } else {
+            mainContent = `
+            <div class="track-title">
+              ${escapeHtml(formatted.title)}
+            </div>
+            ${subtitleParts.length ? `<div class="track-subtitle">${subtitleParts.join('·')}</div>` : ''}
+            ${formatted.genres ? `<div class="track-genres"><span class="material-icons">music_note</span> ${escapeHtml(formatted.genres)}</div>` : ''}
+            ${iconsHtml ? `<div class="track-icons">${iconsHtml}</div>` : ''}
+          `;
+          }
+
+          const trackid = escapeAttr(track.id);
+          return `
+          <div class="track-card" data-track-id="${trackid}">
+            ${mainContent}
+            <div class="card-actions">
+              <button class="btn-tonal edit-btn" data-id="${trackid}" ${track.loadingMeta ? 'disabled style="opacity:0.5;"' : ''}><span class="material-icons">edit</span> Edit</button>
+              <button class="btn-tonal autotag-btn" data-id="${trackid}"><span class="material-icons">sell</span> Autotag</button>
+              <button class="btn-danger delete-btn" data-id="${trackid}"><span class="material-icons">delete</span> Delete</button>
+            </div>
+          </div>
+        `;
+        }).join('');
+
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const trackId = btn.getAttribute('data-id');
+            if (trackId) openEditModal(trackId);
+          });
+        });
+        document.querySelectorAll('.autotag-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const trackId = btn.getAttribute('data-id');
+            if (trackId) openAutotagModal(trackId);
+          });
+        });
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const trackId = btn.getAttribute('data-id');
+            if (trackId && confirm(`Delete track "${trackId}"? This action is permanent.`)) {
+              await deleteTrackById(trackId);
+            }
+          });
+        });
+      }
+
+      function filterTracks() {
+        if (!searchTerm.trim()) return allTracks;
+        const term = searchTerm.trim().toLowerCase();
+        return allTracks.filter(track => {
+          if (track.id.toLowerCase().includes(term)) return true;
+          if (track.metadata) {
+            const meta = track.metadata;
+            if (meta.title && meta.title.toLowerCase().includes(term)) return true;
+            if (meta.artists && meta.artists.some(a => a.toLowerCase().includes(term))) return true;
+            if (meta.album && meta.album.toLowerCase().includes(term)) return true;
+            if (meta.genres && meta.genres.some(g => g.toLowerCase().includes(term))) return true;
+            if (meta.lyrics && meta.lyrics.toLowerCase().includes(term)) return true;
+          }
+          return false;
+        });
+      }
+
+      function updateUI() {
+        renderTracks(filterTracks());
+      }
+
+      async function fetchAllTracks() {
+        try {
+          const trackPaths = await apiFetch('/tracks');
+          if (!Array.isArray(trackPaths)) throw new Error('Invalid tracks response');
+          allTracks = trackPaths.map(path => ({
+            id: path,
+            metadata: null,
+            loadingMeta: true,
+          }));
+          updateUI();
+
+          const metadataPromises = allTracks.map(async (track, idx) => {
+            try {
+              const meta = await apiFetch(`/track/${encodeURIComponent(track.id)}`);
+              allTracks[idx].metadata = meta;
+              allTracks[idx].loadingMeta = false;
+            } catch (err) {
+              console.warn(`Failed to fetch metadata for ${track.id}:`, err);
+              allTracks[idx].loadingMeta = false;
+              allTracks[idx].metadata = null;
+            }
+          });
+          await Promise.allSettled(metadataPromises);
+          updateUI();
+        } catch (err) {
+          console.error('Failed to load tracks:', err);
+          tracksContainer.innerHTML = `<div class="loading-spinner" style="grid-column:1/-1;">
+          <span class="material-icons">error</span>
+          Could not load tracks. Is the backend running? Error: ${escapeHtml(err.message)}
+        </div>`;
+          showStatusMessage(`<span class="material-icons">warning</span> API error: ${escapeHtml(err.message)}`, true);
+        }
+      }
+
+      async function refreshLibrary() {
+        await fetchAllTracks();
+      }
+
+      async function deleteTrackById(id) {
+        try {
+          await apiFetch(`/track/${encodeURIComponent(id)}`, { method: 'DELETE' });
+          showStatusMessage(`<span class="material-icons">delete</span> Removed: ${escapeHtml(id.substring(0, 45))}`);
+          await refreshLibrary();
+        } catch (err) {
+          showStatusMessage(`<span class="material-icons">error</span> Delete failed: ${escapeHtml(err.message)}`, true);
+        }
+      }
+
+      async function addTracksFromUrls(urlsArray) {
+        if (!urlsArray.length) throw new Error('No URLs provided');
+        await apiFetch('/trackadd', {
+          method: 'POST',
+          body: JSON.stringify(urlsArray),
+        });
+        showStatusMessage(`<span class="material-icons">download</span> Added ${urlsArray.length} track(s), refreshing library...`);
+        await refreshLibrary();
+      }
+
+      async function openEditModal(trackId) {
+        const track = allTracks.find(t => t.id === trackId);
+        if (!track || track.loadingMeta || !track.metadata) {
+          showStatusMessage('Metadata still loading, please wait...', true);
+          return;
+        }
+        const title = track.metadata.title || '';
+        const artists = (track.metadata.artists && Array.isArray(track.metadata.artists)) ? track.metadata.artists.join(', ') : '';
+        const album = track.metadata.album || '';
+        const date = track.metadata.date || '';
+        const genres = (track.metadata.genres && Array.isArray(track.metadata.genres)) ? track.metadata.genres.join(', ') : '';
+        const lyrics = track.metadata.lyrics || '';
+        const isrc = track.metadata.isrc || '';
+
+        modalTitle.innerHTML = `<span class="material-icons">edit_note</span> Edit Metadata`;
+        modalBody.innerHTML = `
+        <div class="edit-form-group">
+          <label><span class="material-icons">title</span> Title</label>
+          <input type="text" id="editTitle" value="${escapeAttr(title)}" placeholder="Song title">
+        </div>
+        <div class="edit-form-group">
+          <label><span class="material-icons">mic</span> Artists (comma separated)</label>
+          <input type="text" id="editArtists" value="${escapeAttr(artists)}" placeholder="Artist1, Artist2">
+        </div>
+        <div class="edit-form-group">
+          <label><span class="material-icons">album</span> Album</label>
+          <input type="text" id="editAlbum" value="${escapeAttr(album)}" placeholder="Album name">
+        </div>
+        <div class="edit-form-group">
+          <label><span class="material-icons">calendar_today</span> Date (YYYYMMDD or year)</label>
+          <input type="text" id="editDate" value="${escapeAttr(date)}" placeholder="20240315">
+        </div>
+        <div class="edit-form-group">
+          <label><span class="material-icons">music_note</span> Genres (comma separated)</label>
+          <input type="text" id="editGenres" value="${escapeAttr(genres)}" placeholder="Rock, Electronic, Jazz">
+        </div>
+        <div class="edit-form-group">
+          <label><span class="material-icons">lyrics</span> Lyrics</label>
+          <textarea id="editLyrics" rows="4" placeholder="Song lyrics...">${escapeAttr(lyrics)}</textarea>
+        </div>
+        <div class="edit-form-group">
+          <label><span class="material-icons">tag</span> ISRC</label>
+          <input type="text" id="editIsrc" value="${escapeAttr(isrc)}" placeholder="US-ABC-12-34567">
+        </div>
+        <button id="saveEditBtn" class="btn-primary"><span class="material-icons">save</span>Save</button>
+      `;
+        modalOverlay.classList.remove('hidden');
+
+        const saveBtn = document.getElementById('saveEditBtn');
+        const saveHandler = async () => {
+          const newTitle = document.getElementById('editTitle').value.trim();
+          const newArtistsRaw = document.getElementById('editArtists').value.trim();
+          const newAlbum = document.getElementById('editAlbum').value.trim();
+          const newDate = document.getElementById('editDate').value.trim();
+          const newGenresRaw = document.getElementById('editGenres').value.trim();
+          const newLyrics = document.getElementById('editLyrics').value;
+          const newIsrc = document.getElementById('editIsrc').value.trim();
+
+          const artistsArray = newArtistsRaw ? newArtistsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+          const genresArray = newGenresRaw ? newGenresRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+
+          const updatedMetadata = {
+            title: newTitle || null,
+            artists: artistsArray.length ? artistsArray : null,
+            album: newAlbum || null,
+            date: newDate || null,
+            genres: genresArray.length ? genresArray : null,
+            lyrics: newLyrics || null,
+            isrc: newIsrc || null,
+          };
+
+          try {
+            await apiFetch(`/track/${encodeURIComponent(trackId)}`, {
+              method: 'PUT',
+              body: JSON.stringify(updatedMetadata),
+            });
+            showStatusMessage(`<span class="material-icons">check_circle</span> Metadata updated for "${escapeHtml(newTitle || trackId.slice(0, 30))}"`);
+            closeModal();
+            await refreshLibrary();
+          } catch (err) {
+            showStatusMessage(`<span class="material-icons">error</span> Update failed: ${escapeHtml(err.message)}`, true);
+          }
+        };
+        saveBtn.addEventListener('click', saveHandler);
+        window._editCleanup = () => saveBtn.removeEventListener('click', saveHandler);
+      }
+
+      async function openAutotagModal(trackId) {
+        modalTitle.innerHTML = `<span class="material-icons">sell</span> Autotag Suggestions`;
+        modalBody.innerHTML = `<div class="loading-spinner"><span class="material-icons">search</span> Fetching metadata suggestions ...</div>`;
+        modalOverlay.classList.remove('hidden');
+
+        try {
+          const suggestions = await apiFetch(`/track/${encodeURIComponent(trackId)}/autotag`);
+          if (!Array.isArray(suggestions) || suggestions.length === 0) {
+            modalBody.innerHTML = `<div class="empty-meta"><span class="material-icons">help_outline</span> No suggestions from external sources. Try different track or check configuration.</div>`;
+            return;
+          }
+
+          modalBody.innerHTML = suggestions.map((sug, idx) => {
+            const fmt = formatMetadata(sug);
+            const title = fmt?.title || 'Untitled';
+            const artists = fmt?.artists;
+            const album = fmt?.album;
+            const date = fmt?.date;
+            const genres = fmt?.genres;
+            const hasIsrc = fmt?.hasIsrc || false;
+            const hasLyrics = fmt?.hasLyrics || false;
+
+            let subtitleParts = [];
+            if (artists) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">mic</span> ${escapeHtml(artists)}</span>`);
+            if (album) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">album</span> ${escapeHtml(album)}</span>`);
+            if (date) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">calendar_today</span> ${escapeHtml(date)}</span>`);
+
+            let iconsHtml = '';
+            if (hasIsrc) iconsHtml += `<span><span class="material-icons inline-icon">tag</span>ISRC</span>`;
+            if (hasLyrics) iconsHtml += `<span><span class="material-icons inline-icon">description</span> Lyrics</span>`;
+
+            return `
+            <div class="suggestion-item" data-suggestion-index="${idx}">
+              <div class="suggestion-title">${escapeHtml(title)}</div>
+              ${subtitleParts.length ? `<div class="suggestion-subtitle">${subtitleParts.join(' · ')}</div>` : ''}
+              ${genres ? `<div class="suggestion-genres"><span class="material-icons">music_note</span> ${escapeHtml(genres)}</div>` : ''}
+              ${iconsHtml ? `<div class="suggestion-icons">${iconsHtml}</div>` : ''}
+            </div>
+          `;
+          }).join('');
+
+          document.querySelectorAll('.suggestion-item').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              const idx = parseInt(btn.getAttribute('data-suggestion-index'), 10);
+              const selectedSuggestion = suggestions[idx];
+              if (!selectedSuggestion) return;
+              try {
+                await apiFetch(`/track/${encodeURIComponent(trackId)}`, {
+                  method: 'PATCH',
+                  body: JSON.stringify(selectedSuggestion),
+                });
+                showStatusMessage(`<span class="material-icons">check_circle</span> Autotag merged: metadata updated for ${escapeHtml(trackId.substring(0, 45))}`);
+                closeModal();
+                await refreshLibrary();
+              } catch (err) {
+                showStatusMessage(`<span class="material-icons">error</span> Failed to apply metadata: ${escapeHtml(err.message)}`, true);
+              }
+            });
+          });
+        } catch (err) {
+          modalBody.innerHTML = `<div class="empty-meta" style="color:#b91c1c;"><span class="material-icons">error</span> Error fetching autotag suggestions: ${escapeHtml(err.message)}</div>`;
+          showStatusMessage(`<span class="material-icons">warning</span> Autotag error: ${escapeHtml(err.message)}`, true);
+        }
+      }
+
+      function openAddTrackModal() {
+        modalTitle.innerHTML = `<span class="material-icons">add</span> Add tracks from URLs`;
+        modalBody.innerHTML = `
+        <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 6px;"><span class="material-icons">link</span> Enter one or more audio URLs (each on new line):</div>
+        <textarea id="urlsTextarea" class="textarea-urls" rows="5" placeholder="https://example.com/song1.mp3&#10;https://example.com/song2.flac&#10;https://example.com/track.wav"></textarea>
+        <div class="card-actions" style="border: none; justify-content: flex-end;">
+          <button id="confirmAddBtn" class="btn-primary"><span class="material-icons">download</span> Download & add tracks</button>
+        </div>
+      `;
+        modalOverlay.classList.remove('hidden');
+        document.getElementById('confirmAddBtn')?.addEventListener('click', async () => {
+          const textarea = document.getElementById('urlsTextarea');
+          const rawUrls = textarea.value.split(/\r?\n/).map(u => u.trim()).filter(u => u !== '');
+          if (rawUrls.length === 0) {
+            showStatusMessage('<span class="material-icons">warning</span> Please enter at least one valid URL.', true);
+            return;
+          }
+          try {
+            await addTracksFromUrls(rawUrls);
+            closeModal();
+          } catch (err) {
+            showStatusMessage(`<span class="material-icons">error</span> Add failed: ${escapeHtml(err.message)}`, true);
+          }
+        });
+      }
+
+      function closeModal() {
+        modalOverlay.classList.add('hidden');
+        if (window._editCleanup) window._editCleanup();
+        window._editCleanup = null;
+      }
+
+      searchInput.addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        updateUI();
+      });
+
+      addTrackBtn.addEventListener('click', openAddTrackModal);
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+      });
+
+      fetchAllTracks();
+    })();
+  </script>
+</body>
+
+</html>

@@ -1,20 +1,12 @@
 use crate::{autotag::MetadataSource, sync, util};
 use axum::{Router, extract, routing};
-use static_serve::embed_assets;
+use static_serve::embed_asset;
 use std::sync::Arc;
-
-embed_assets!(
-    "frontend/pkg",
-    compress = true,
-    strip_html_ext = true,
-    ignore_paths = [".gitignore"],
-    cache_busted_paths = ["index.html", "favicon.svg"]
-);
 
 pub async fn serve(configuration: util::Configuration) {
     let address = configuration.address().unwrap();
     let router = Router::new()
-        .merge(static_router())
+        .route("/", embed_asset!("frontend.html", compress = true))
         .route("/health", routing::get(async || "Working!"))
         .route("/trackadd", routing::post(trackadd))
         .route("/tracks", routing::get(trackls))
