@@ -2,7 +2,6 @@ name: Static Build
 
 on:
   push:
-    branches: [ main basic-frontend ]
 
 jobs:
   build:
