@@ -5,6 +5,7 @@ use reqwest::StatusCode;
 use std::{fs, path::Path};
 
 pub async fn track_download(url: Uri, dst_dir: &Path) -> Result<(), (StatusCode, String)> {
+    let path = std::env::var("PATH").unwrap_or_default();
     let cmd = tokio::process::Command::new("yt-dlp")
         .current_dir(dst_dir)
         .args([
@@ -32,6 +33,7 @@ pub async fn track_download(url: Uri, dst_dir: &Path) -> Result<(), (StatusCode,
             "ffmpeg: -c:v mjpeg -vf crop=\"'if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'\"",
         ])
         .env_clear()
+        .env("PATH", path)
         .stdout(std::process::Stdio::null())
         .spawn();
     match cmd {
