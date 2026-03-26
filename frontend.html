@@ -138,7 +138,6 @@
       display: flex;
       flex-direction: column;
       gap: 0.6rem;
-      height: 256px;
       padding: 1rem;
       transition: 0.2s ease-out;
     }
@@ -197,12 +196,12 @@
       padding-top: 0.6rem;
     }
 
-    .track-icons {
+    .track-notes {
       display: flex;
       gap: 0.8rem;
     }
 
-    .track-icons span {
+    .track-notes span {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -460,7 +459,6 @@
 
     <div id="tracksContainer" class="tracks-grid">
       <div class="loading-spinner">
-        <span class="material-icons">music_note</span>
         Loading...
       </div>
     </div>
@@ -528,7 +526,9 @@
       setTimeout(() => div.remove(), 3800);
     }
     
-    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function (m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+    function escapeHtml(str) { return str ? String(str).replace(/[&<>]/g, (m) => (
+      {'&': '&amp;', '<': '&lt;', '>': '&gt;'}[m]
+    )) : '' }
     function escapeAttr(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
     
     function formatMetadata(meta) {
@@ -553,60 +553,61 @@
         return;
       }
     
-      tracksContainer.innerHTML = Object.entries(tracksToRender).map(([path, track]) => {
-        const meta = track.metadata;
-        const formatted = meta ? formatMetadata(meta) : null;
-        const pathShort = path.length > 60 ? path.slice(0, 57) + '...' : path;
-        const hasMetadata = !track.loading && formatted !== null;
-    
-        let subtitleParts = [];
-        let iconsHtml = '';
-        if (hasMetadata) {
-          if (formatted.artists) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">mic</span> ${escapeHtml(formatted.artists)}</span>`);
-          if (formatted.album) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">album</span> ${escapeHtml(formatted.album)}</span>`);
-          if (formatted.date) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">calendar_today</span> ${escapeHtml(formatted.date)}</span>`);
-          if (formatted.hasIsrc) iconsHtml += `<span><span class="material-icons">tag</span>ISRC</span>`;
-          if (formatted.hasLyrics) iconsHtml += `<span><span class="material-icons">lyrics</span>Lyrics</span>`;
-        }
-    
-        let mainContent;
+      tracksContainer.innerHTML =
+      Object.entries(tracksToRender).map(([path, track]) => {
         if (track.loading) {
-          mainContent = `
-                    <div class="track-path">
-                      <span class="material-icons" style="font-size: 0.9rem;">folder</span>
-                      ${escapeHtml(pathShort)}
-                    </div>
-                    <div class="empty-meta"><span class="material-icons inline-icon">hourglass_empty</span> Loading metadata...</div>
-                  `;
-        } else if (!hasMetadata) {
-          mainContent = `
-                    <div class="track-path">
-                      <span class="material-icons" style="font-size: 0.9rem;">folder</span>
-                      ${escapeHtml(pathShort)}
-                    </div>
-                    <div class="empty-meta"><span class="material-icons inline-icon">warning</span> No metadata loaded</div>
-                  `;
-        } else {
-          mainContent = `
-                    <div class="track-title">
-                      ${escapeHtml(formatted.title)}
-                    </div>
-                    ${subtitleParts.length ? `<div class="track-subtitle">${subtitleParts.join('·')}</div>` : ''}
-                    ${formatted.genres ? `<div class="track-genres"><span class="material-icons">music_note</span> ${escapeHtml(formatted.genres)}</div>` : ''}
-                    ${iconsHtml ? `<div class="track-icons">${iconsHtml}</div>` : ''}
-                  `;
-        }
-    
-        return `
-                  <div class="track-card" data-id="${path}">
-                    ${mainContent}
-                    <div class="track-actions">
-                      <button class="btn-tonal edit-btn" data-id="${path}" ${track.loading ? 'disabled style="opacity:0.5;"' : ''}><span class="material-icons">edit</span> Edit</button>
-                      <button class="btn-tonal autotag-btn" data-id="${path}"><span class="material-icons">sell</span> Autotag</button>
-                      <button class="btn-danger delete-btn" data-id="${path}"><span class="material-icons">delete</span> Delete</button>
-                    </div>
+          return `
+                <div class="track-card" data-id="${path}">
+                  <div class="track-path">
+                    <span class="material-icons inline-icon">folder</span>
+                    ${escapeHtml(path)}
                   </div>
-                `;
+                  <div class="empty-meta"><span class="material-icons inline-icon">hourglass_empty</span> Loading metadata...</div>
+                </div>`;
+        }
+
+        if (track.metadata === null) {
+          return `
+                <div class="track-card" data-id="${path}">
+                  <div class="track-path">
+                    <span class="material-icons inline-icon">folder</span>
+                    ${escapeHtml(path)}
+                  </div>
+                  <div class="empty-meta"><span class="material-icons inline-icon">warning</span> No Metadata</div>
+                  <div class="track-actions">
+                    <button class="btn-tonal edit-btn" data-id="${path}"><span class="material-icons">edit</span> Edit</button>
+                    <button class="btn-danger delete-btn" data-id="${path}"><span class="material-icons">delete</span> Delete</button>
+                  </div>
+                </div>`;
+        }
+
+        const formatted = formatMetadata(track.metadata);
+
+        let subtitleParts = [];
+        if (formatted.artists) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">mic</span> ${escapeHtml(formatted.artists)}</span>`);
+        if (formatted.album) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">album</span> ${escapeHtml(formatted.album)}</span>`);
+        if (formatted.date) subtitleParts.push(`<span class="track-subtitle-item"><span class="material-icons inline-icon">calendar_today</span> ${escapeHtml(formatted.date)}</span>`);
+
+        return `
+                <div class="track-card" data-id="${path}">
+                  <div class="track-title">${escapeHtml(formatted.title)}</div>
+                  <div class="track-subtitle">${subtitleParts.join('·')}</div>
+                  <div class="track-genres">
+                    <span class="material-icons">music_note</span>
+                    ${escapeHtml(
+                      formatted.genres.length > 80 ? formatted.genres.slice(0,77) + '...' : formatted.genres
+                    )}
+                  </div>
+                  <div class="track-notes">
+                    ${formatted.hasIsrc ? `<span><span class="material-icons">tag</span>ISRC</span>` : ''}
+                    ${formatted.hasLyrics ? `<span><span class="material-icons">lyrics</span>Lyrics</span>` : ''}
+                  </div>
+                  <div class="track-actions">
+                    <button class="btn-tonal edit-btn" data-id="${path}"><span class="material-icons">edit</span> Edit</button>
+                    <button class="btn-tonal autotag-btn" data-id="${path}"><span class="material-icons">sell</span> Autotag</button>
+                    <button class="btn-danger delete-btn" data-id="${path}"><span class="material-icons">delete</span> Delete</button>
+                  </div>
+                </div>`;
       }).join('');
     
       document.querySelectorAll('.edit-btn').forEach(btn => {
@@ -766,7 +767,6 @@
         const newAlbum = document.getElementById('editAlbum').value.trim();
         const newDate = document.getElementById('editDate').value.trim();
         const newGenresRaw = document.getElementById('editGenres').value.trim();
-        const newLyrics = document.getElementById('editLyrics').value;
         const newIsrc = document.getElementById('editIsrc').value.trim();
     
         const updatedMetadata = {
@@ -775,7 +775,7 @@
           album: newAlbum || null,
           date: newDate || null,
           genres: newGenresRaw ? newGenresRaw.split(',').map(s => s.trim()).filter(s => s) : [],
-          lyrics: newLyrics || null,
+          lyrics: document.getElementById('editLyrics').value || null,
           isrc: newIsrc || null,
         };
     
@@ -784,7 +784,7 @@
             method: 'PUT',
             body: JSON.stringify(updatedMetadata),
           });
-          showStatusMessage(`<span class="material-icons">check_circle</span> Metadata updated for "${escapeHtml(newTitle || id.slice(0, 30))}"`);
+          showStatusMessage(`<span class="material-icons">check_circle</span> Metadata updated for "${escapeHtml(newTitle || id)}"`);
           closeModal();
     
           allTracks[id] = {

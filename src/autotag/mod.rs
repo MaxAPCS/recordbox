@@ -41,35 +41,37 @@ impl MetadataSource for MetadataSources {
         meta: &util::Metadata,
         fuzzy: bool,
     ) -> Result<Vec<util::Metadata>, String> {
-        let meta = meta.clone();
-        Ok(if !fuzzy {
+        let mut candidates: Vec<_> = if !fuzzy {
             if let Some(spotifydb) = &self.spotifydb {
                 <[Result<Vec<util::Metadata>, String>; 4]>::from(join!(
-                    spotifydb.get_track(&meta, fuzzy),
-                    self.lrclib.get_track(&meta, fuzzy),
-                    self.deezer.get_track(&meta, fuzzy),
-                    self.musicbrainz.get_track(&meta, fuzzy)
+                    spotifydb.get_track(meta, fuzzy),
+                    self.lrclib.get_track(meta, fuzzy),
+                    self.deezer.get_track(meta, fuzzy),
+                    self.musicbrainz.get_track(meta, fuzzy)
                 ))
                 .to_vec()
             } else {
                 <[Result<Vec<util::Metadata>, String>; 3]>::from(join!(
-                    self.lrclib.get_track(&meta, fuzzy),
-                    self.deezer.get_track(&meta, fuzzy),
-                    self.musicbrainz.get_track(&meta, fuzzy)
+                    self.lrclib.get_track(meta, fuzzy),
+                    self.deezer.get_track(meta, fuzzy),
+                    self.musicbrainz.get_track(meta, fuzzy)
                 ))
                 .to_vec()
             }
         } else {
             <[Result<Vec<util::Metadata>, String>; 2]>::from(join!(
-                self.deezer.get_track(&meta, fuzzy),
-                self.musicbrainz.get_track(&meta, fuzzy)
+                self.deezer.get_track(meta, fuzzy),
+                self.musicbrainz.get_track(meta, fuzzy)
             ))
             .to_vec()
         }
         .into_iter()
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
+        .filter_map(|c| c.ok())
         .flatten()
-        .collect())
+        .collect();
+
+        candidates.sort_by(|a, b| meta.similarity(b).total_cmp(&meta.similarity(a)));
+
+        Ok(candidates)
     }
 }

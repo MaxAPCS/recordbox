@@ -43,7 +43,7 @@ impl Configuration {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Default, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Default, Clone, Debug)]
 pub struct Metadata {
     pub(crate) title: Option<String>,
     #[serde(default)]
@@ -71,6 +71,49 @@ impl From<mp4ameta::Tag> for Metadata {
 }
 
 impl Metadata {
+    pub(crate) fn similarity(&self, other: &Metadata) -> f32 {
+        let mut similarity = 0.;
+
+        if let Some(我) = &self.title
+            && let Some(他) = &other.title
+        {
+            if *我 == *他 {
+                similarity += 2.;
+            }
+        }
+
+        let mut artists = Vec::with_capacity(self.artists.len());
+        for artist in &self.artists {
+            if !artists.contains(&artist) {
+                artists.push(artist);
+            }
+        }
+        let artistsim: f32 = artists
+            .iter()
+            .enumerate()
+            .map(|(i, &artist)| ((other.artists.contains(artist) as i32) as f32) / ((i + 1) as f32))
+            .sum();
+        similarity += artistsim;
+
+        if let Some(我) = &self.album
+            && let Some(他) = &other.album
+        {
+            if *我 == *他 {
+                similarity += 0.75;
+            }
+        }
+
+        if let Some(我) = &self.isrc
+            && let Some(他) = &other.isrc
+        {
+            if *我 == *他 {
+                similarity += 3.;
+            }
+        }
+
+        similarity
+    }
+
     pub(crate) fn apply(self, tag: &mut mp4ameta::Tag) {
         if let Some(title) = self.title {
             tag.set_title(title);
