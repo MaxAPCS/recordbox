@@ -592,12 +592,13 @@
                 <div class="track-card" data-id="${path}">
                   <div class="track-title">${escapeHtml(formatted.title)}</div>
                   <div class="track-subtitle">${subtitleParts.join('·')}</div>
-                  <div class="track-genres">
+                  ${formatted.genres !== null ?
+                 `<div class="track-genres">
                     <span class="material-icons">music_note</span>
                     ${escapeHtml(
                       formatted.genres.length > 80 ? formatted.genres.slice(0,77) + '...' : formatted.genres
                     )}
-                  </div>
+                  </div>` : ''}
                   <div class="track-notes">
                     ${formatted.hasIsrc ? `<span><span class="material-icons">tag</span>ISRC</span>` : ''}
                     ${formatted.hasLyrics ? `<span><span class="material-icons">lyrics</span>Lyrics</span>` : ''}
